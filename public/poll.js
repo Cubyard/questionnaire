@@ -268,15 +268,32 @@ function setError(card, message) {
 }
 
 let turnstileToken = "";
+let tokenWaiters = [];
+
+// The invisible check usually finishes while people read the questions; if
+// they're quicker than it, wait for it rather than failing the submit.
+function waitForToken(ms) {
+  if (turnstileToken) return Promise.resolve(turnstileToken);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(""), ms);
+    tokenWaiters.push((t) => { clearTimeout(timer); resolve(t); });
+  });
+}
+
 function loadTurnstile(siteKey, mount) {
-  window.onQnTurnstile = () => {
-    window.turnstile.render(mount, {
-      sitekey: siteKey,
-      appearance: "interaction-only",
-      callback: (t) => { turnstileToken = t; },
-      "expired-callback": () => { turnstileToken = ""; },
-    });
-  };
+  turnstileToken = ""; // tokens are single use; "Answer again" needs a fresh one
+  const render = () => window.turnstile.render(mount, {
+    sitekey: siteKey,
+    appearance: "interaction-only",
+    callback: (t) => {
+      turnstileToken = t;
+      tokenWaiters.forEach((w) => w(t));
+      tokenWaiters = [];
+    },
+    "expired-callback": () => { turnstileToken = ""; },
+  });
+  if (window.turnstile) return render();
+  window.onQnTurnstile = render;
   document.head.append(el("script", { src: "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onQnTurnstile&render=explicit", async: true }));
 }
 
@@ -324,6 +341,10 @@ function renderForm(poll) {
     submitBtn.textContent = "Sending…";
     const answers = {};
     for (const q of poll.questions) if (isAnswered(state[q.id])) answers[q.id] = state[q.id];
+    if (poll.turnstileSiteKey && !turnstileToken) {
+      submitBtn.textContent = "Checking you're a person…";
+      await waitForToken(20000);
+    }
     const r = await api(`/api/polls/${slug}/responses`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -344,7 +365,10 @@ function renderForm(poll) {
     if (err?.code === "invalid_answers" && err.details) {
       for (const [id, msg] of Object.entries(err.details)) if (cards.has(id)) setError(cards.get(id), msg);
     }
-    if (window.turnstile && poll.turnstileSiteKey) window.turnstile.reset();
+    if (window.turnstile && poll.turnstileSiteKey) {
+      turnstileToken = "";
+      window.turnstile.reset();
+    }
     formError.textContent = err?.message || "We couldn't send that. Check your connection and try again.";
   });
 
