@@ -1,0 +1,49 @@
+{
+  "slug": "team-lunch",
+  "title": "Team lunch: what should we order?",
+  "description": "Takes about a minute. Results show up right after you answer.",
+  "status": "open",
+  "settings": {
+    "showResults": "after_submit",
+    "allowMultipleResponses": false,
+    "confirmationMessage": "Thanks! We'll order on Friday."
+  },
+  "questions": [
+    {
+      "id": "cuisine",
+      "type": "single",
+      "title": "Which cuisine?",
+      "options": ["Tacos", "Sushi", "Pizza", "Thai"],
+      "allowOther": true
+    },
+    {
+      "id": "diet",
+      "type": "multiple",
+      "title": "Any dietary needs?",
+      "required": false,
+      "options": ["Vegetarian", "Vegan", "Gluten free", "Nut allergy"]
+    },
+    {
+      "id": "hunger",
+      "type": "rating",
+      "title": "How hungry will you be?",
+      "max": 5
+    },
+    {
+      "id": "recommend",
+      "type": "scale",
+      "title": "How likely are you to recommend last month's lunch spot?",
+      "min": 0,
+      "max": 10,
+      "minLabel": "Not likely",
+      "maxLabel": "Very likely",
+      "required": false
+    },
+    {
+      "id": "notes",
+      "type": "paragraph",
+      "title": "Anything else we should know?",
+      "required": false
+    }
+  ]
+}
